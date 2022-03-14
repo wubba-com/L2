@@ -1,11 +1,59 @@
 package main
 
 import (
-	strategy "L2/task1/strategy/pattern"
-	strategy2 "L2/task1/strategy/pattern/service"
 	"errors"
 	"fmt"
 )
+
+// Payment - Интерфейс Стратегии описывает, как клиент может использовать различные конкретные Стратегии
+type Payment interface {
+	Pay() error
+}
+
+func NewPayPalPayment() Payment {
+	return &payPalPayment{}
+}
+
+type payPalPayment struct {
+	cardNum string
+	cvv     string
+}
+
+func (p payPalPayment) Pay() error {
+	// API PayPal
+	fmt.Println("paypal payment")
+	return nil
+}
+
+func NewQIWIPayment() Payment {
+	return &qiwiPayment{}
+}
+
+type qiwiPayment struct {
+	cardNum string
+	cvv     string
+}
+
+func (q qiwiPayment) Pay() error {
+	// API QIWI
+	fmt.Println("QIWI payment")
+	return nil
+}
+
+func NewSberPayPayment() Payment {
+	return &SberPayPayment{}
+}
+
+type SberPayPayment struct {
+	cardNum string
+	cvv     string
+}
+
+func (c SberPayPayment) Pay() error {
+	// API SberPay
+	fmt.Println("SberPay payment")
+	return nil
+}
 
 /**
 Стратегия — это поведенческий паттерн проектирования, который определяет семейство схожих алгоритмов
@@ -40,17 +88,17 @@ const (
 type PaymentFactory struct {
 }
 
-func (pf *PaymentFactory) PaymentMethod(choicePay int) (strategy.Payment, error) {
+func (pf *PaymentFactory) PaymentMethod(choicePay int) (Payment) {
 	switch choicePay {
 	case SberPay:
-		return strategy2.NewSberPayPayment(), nil
+		return NewSberPayPayment()
 	case PayPal:
-		return strategy2.NewPayPalPayment(), nil
+		return NewPayPalPayment()
 	case QIWIPay:
-		return strategy2.NewQiwiPayment(), nil
+		return NewQIWIPayment()
 	}
 
-	return nil, errors.New("err payment")
+	return nil
 }
 
 // Order структура заказа
@@ -67,12 +115,12 @@ func FromForm() (string, int) {
 // ProcessOrder - обработка заказа
 func ProcessOrder(order *Order) error {
 	pf := &PaymentFactory{}
-	payment, err := pf.PaymentMethod(order.PaymentUID)
-	if err != nil {
-		return err
+	payment := pf.PaymentMethod(order.PaymentUID)
+	if payment == nil {
+		return errors.New("err payment")
 	}
 
-	err = payment.Pay()
+	err := payment.Pay()
 	if err != nil {
 		return err
 	}
@@ -91,3 +139,4 @@ func main() {
 	}
 
 }
+

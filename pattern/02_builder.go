@@ -1,9 +1,46 @@
 package main
 
 import (
-	builder "L2/task1/builder/pattern"
 	"fmt"
+	"strings"
 )
+
+// SQLQueryBuilder Интерфейс Строителя объявляет набор методов для сборки SQL-запроса
+type SQLQueryBuilder interface {
+	Select(table string, fields []string) SQLQueryBuilder
+	Where(field string, operator string, value string) SQLQueryBuilder
+	Limit(limit int) SQLQueryBuilder
+	Get() string
+}
+
+func NewMySqlBuilder() SQLQueryBuilder {
+	return &MySQLQueryBuilder{}
+}
+
+// MySQLQueryBuilder Конкретный Строитель соответствует определённому диалекту SQL и может
+// реализовать шаги построения немного иначе, чем остальные.
+type MySQLQueryBuilder struct {
+	Query string
+}
+
+func (b *MySQLQueryBuilder) Get() string {
+	return b.Query
+}
+
+func (b *MySQLQueryBuilder) Select(table string, fields []string) SQLQueryBuilder {
+	b.Query = fmt.Sprintf("SELECT %s FROM %s ", strings.Join(fields, ", "), table)
+	return b
+}
+
+func (b *MySQLQueryBuilder) Where(field string, operator string, value string) SQLQueryBuilder {
+	b.Query += fmt.Sprintf("WHERE %s %s %s ", field, operator, value)
+	return b
+}
+
+func (b *MySQLQueryBuilder) Limit(limit int) SQLQueryBuilder {
+	b.Query += fmt.Sprintf("LIMIT %d", limit)
+	return b
+}
 
 /**
 Строитель — это порождающий паттерн проектирования, который позволяет создавать сложные объекты пошагово.
@@ -29,7 +66,7 @@ import (
 */
 
 func main() {
-	concreteBuilder := builder.NewMySqlBuilder()
+	concreteBuilder := NewMySqlBuilder()
 	query := concreteBuilder.Select("user", []string{"name", "email"}).Where("id", "=", "1").Get()
 	fmt.Println(query)
 }
