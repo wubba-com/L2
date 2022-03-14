@@ -1,9 +1,34 @@
 package main
-
 import (
-	facade "L2/task1/facade/pattern"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 )
+
+func NewValidaterFacade() *validaterFacade {
+	v := validator.New()
+	return &validaterFacade{validater: v}
+}
+
+type validaterFacade struct {
+	validater *validator.Validate
+}
+
+func (v *validaterFacade) ValidateStruct(val interface{}) error {
+	err := v.validater.Struct(val)
+	if err != nil {
+		return err
+
+	}
+	return nil
+}
+
+func (v *validaterFacade) IsEmail(email string) error {
+	err := v.validater.Var(email, "required,email")
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // Фасад - это структурный паттерн проектирования, который предоставляет простой интерфейс к сложной системе классов, библиотеке или фреймворку.
 
@@ -22,7 +47,7 @@ type User struct {
 }
 
 func main() {
-	v := facade.NewValidaterFacade()
+	v := NewValidaterFacade()
 	u := &User{UserUID: "1", Email: "test", Name: "Petya", Age: 25}
 	err := v.IsEmail(u.Email)
 	if err != nil {
@@ -35,3 +60,5 @@ func main() {
 		return
 	}
 }
+
+
