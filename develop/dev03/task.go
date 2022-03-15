@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -28,16 +26,16 @@ func UtilSort(f *os.File, k int)  {
 	})
 
 	fmt.Println(s)
-	var str string
-	for _, v := range s{
-		fmt.Println(v)
-		str += strings.Join(v, "\n")
-	}
-	err := ioutil.WriteFile(f.Name(), []byte(strings.Join(s)), fs.ModePerm)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	//var str string
+	//for _, v := range s{
+	//	fmt.Println(v)
+	//	str += strings.Join(v, "\n")
+	//}
+	//err := ioutil.WriteFile(f.Name(), []byte(strings.Join(s)), fs.ModePerm)
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return
+	//}
 }
 
 var fileName string
