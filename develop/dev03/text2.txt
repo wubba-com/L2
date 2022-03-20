@@ -1,12 +1,5 @@
-est et expedita distinctio.
-Nam libero tempore, cum soluta nobis est
-eligendi optio cumque nihil impedit
-quo minus id quod maxime placeat
-facere possimus, omnis voluptas assumenda est,
-omnis dolor repellendus.
-Temporibus autem quibusdam et aut
-officiis debitis aut rerum necessitatibus
-saepe eveniet ut et voluptates repudiandae
-sint et molestiae non recusandae. Itaque earum
-rerum hic tenetur a sapiente delectus,
-ut aut reiciendis
+drwxr-xr-x 7 user user 4096 янв 13 11:42 Lightworks
+drwxr-xr-x 6 user user 4096 дек 6 14:29 Android
+drwxr-xr-x 12 user user 4096 янв 14 21:49 Documents
+drwx------ 5 user user 12288 янв 15 14:59 Downloads
+drwx------ 3 user user 4096 янв 14 22:18 Desktop
