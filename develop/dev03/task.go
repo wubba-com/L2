@@ -33,12 +33,9 @@ func index(s string, w []string) int {
 // readScan - возвращает слайс со строками из файла
 func readScan(scan *bufio.Scanner) []string {
 	s := make([]string, 0)
-	var k int
 
 	for scan.Scan() {
-		line := scan.Text()
-		s = append(s, line)
-		k++
+		s = append(s, scan.Text())
 	}
 
 	return s

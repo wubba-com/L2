@@ -7,24 +7,13 @@ import (
 	"unicode/utf8"
 )
 
-func Unique(input string) bool {
-	if utf8.RuneCountInString(input) < 2 {
-		return true
-	}
+/**
+Написать функцию поиска всех множеств анаграмм по словарю.
 
-	input = strings.ToLower(input)
-	m := make(map[string]int)
-	for _, b := range input {
-		m[string(b)] += 1
-		if v, ok := m[string(b)]; ok {
-			if v > 1 {
-				return false
-			}
-		}
-	}
-
-	return true
-}
+Например:
+'пятак', 'пятка' и 'тяпка' - принадлежат одному множеству,
+'листок', 'слиток' и 'столик' - другому
+ */
 
 func Set(sl []string) []string  {
 	m := make(map[string]int)
@@ -76,8 +65,8 @@ func SetAnagram(anagrams []string) map[string][]string {
 		}
 	}
 
-	for _, a := range m {
-		sort.Strings(a)
+	for k := range m {
+		sort.Strings(m[k])
 	}
 
 	return m

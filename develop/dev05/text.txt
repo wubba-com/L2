@@ -1,0 +1,18 @@
+'NavPageCount' => $arResult['NAV_RESULT']->NavPageCount,
+'NavPageNomer' => $arResult['NAV_RESULT']->NavPageNomer,
+'NavNum' => $arResult['NAV_RESULT']->NavNum
+navParams: <?=CUtil::PhpToJSObject($navParams)?>,
+deferredLoad: false, // enable it for deferred load
+initiallyShowHeader: '<?=!empty($arResult['ITEM_ROWS'])?>',
+bigData: <?=CUtil::PhpToJSObject($arResult['BIG_DATA'])?>,
+lazyLoad: !!'<?=$showLazyLoad?>',
+loadOnScroll: !!'<?=($arParams['LOAD_ON_SCROLL'] === 'Y')?>',
+template: '<?=CUtil::JSEscape($signedTemplate)?>',
+ajaxId: '<?=CUtil::JSEscape($arParams['AJAX_ID'])?>',
+parameters: '<?=CUtil::JSEscape($signedParams)?>',
+container: '<?=$containerName?>'
+        document.querySelectorAll('.slide-item').forEach(el => {
+            el.addEventListener('mouseleave', function(e) {
+                e.target.parentElement.style.height = "auto";
+            })
+        })
