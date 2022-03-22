@@ -6,13 +6,192 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"log"
 	"os"
+	"regexp"
 	"strings"
+	"sync"
 )
 
 /**
 Реализовать утилиту фильтрации по аналогии с консольной утилитой (man grep — смотрим описание и основные параметры).
 */
+
+type Greper struct {
+	wg *sync.WaitGroup
+	lock *sync.Mutex
+	c chan int
+	lines []string
+	q string
+	after int
+	before int
+	context int
+	count bool
+	ignoreCase bool
+	invert bool
+	fixed bool
+	line bool
+	i int
+	amount int
+}
+
+// contextN - высчитывает индексы для строк ДО и ПОСЛЕ найденной строки
+func (g *Greper) contextN(i int) string {
+	counter := g.context
+	opposite := -counter
+	for counter >= opposite {
+		if i+counter < len(g.lines) && i-counter > -1 {
+			g.addPreviousQ(g.wg, counter)
+		}
+		counter--
+	}
+	return g.q
+}
+
+// afterN - высчитывает индексы для строк ПОСЛЕ найденной строки
+func (g *Greper) afterN(i int) string {
+	var j = 0
+	counter := g.after
+	for counter >= 0 {
+		g.wg.Add(1)
+		if i+j < len(g.lines) {
+			g.addNextQ(g.wg, j)
+		}
+		counter--
+		j++
+	}
+	g.wg.Wait()
+	return g.q
+}
+
+// beforeN - высчитывает индексы для строк ДО найденной строки
+func (g *Greper) beforeN(i int) string {
+	counter := g.before
+	for counter >= 0 {
+		g.wg.Add(1)
+		if i-counter > -1 {
+			g.addPreviousQ(g.wg, counter)
+		}
+		counter--
+	}
+	g.wg.Wait()
+	return g.q
+}
+
+// add - Добавляет строку к итоговой строке поиска
+func(g *Greper) add(index int) {
+	if g.line {
+		g.q += fmt.Sprintf("%d %s\n", index + 1, g.lines[index])
+	} else {
+		g.q += fmt.Sprintf("%s\n", g.lines[index])
+	}
+}
+
+// currentQ - Добавляет текущую строку
+func (g *Greper) currentQ(index int)  {
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	g.add(index)
+}
+
+// addPreviousQ - добавляет предыдущую строку по N к итоговой строке поиска
+func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int)  {
+	defer wg.Done()
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	index = g.i-index
+	g.add(index)
+
+}
+
+// addNextQ - добавляет след строку по N к итоговой строке поиска
+func (g *Greper) addNextQ(wg *sync.WaitGroup, index int)  {
+	defer wg.Done()
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	index = g.i+index
+	g.add(index)
+}
+
+// worker - управляет работой флагами
+func (g *Greper) worker(i int) {
+	g.amount += 1
+	g.i = i // current string
+
+	if g.before + g.after + g.context > 0 {
+		if g.after > 0 {
+			g.afterN(i)
+		}
+
+		if g.before > 0 {
+			g.beforeN(i)
+		}
+
+		if g.context > 0 {
+			g.contextN(i)
+		}
+	} else {
+		g.currentQ(i)
+	}
+
+}
+
+// Grep - запускает алгоритм поиска
+func (g *Greper) Grep(sub string) {
+	var reg *regexp.Regexp
+	var err error
+	if g.ignoreCase {
+		reg, err = regexp.Compile("(?i)"+sub)
+		sub = strings.ToLower(sub)
+	} else {
+		reg, err = regexp.Compile(sub)
+	}
+
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	for i, l := range g.lines {
+		if g.ignoreCase {
+			l = strings.ToLower(l)
+		}
+		if g.fixed {
+			if l == sub && !g.invert {
+				g.worker(i)
+			}
+
+			if l != sub && g.invert {
+				g.worker(i)
+			}
+		} else {
+			// Попадут подстроки
+			if reg.MatchString(l) && !g.invert {
+				g.worker(i)
+			}
+
+			// Попадут все кроме подстроки
+			if !reg.MatchString(l) && g.invert {
+				g.worker(i)
+			}
+		}
+	}
+
+	g.q = strings.Trim(g.q, "\n")
+}
+
+// Amount - Получаем сколько строк найдено
+func (g *Greper) Amount() int {
+	return g.amount
+}
+
+// Query - Получаем итоговую строку поиска
+func (g *Greper) Query() string {
+	return g.q
+}
 
 func writeFile(name string, b []byte) {
 	err := ioutil.WriteFile(name, b, fs.ModePerm)
@@ -32,137 +211,53 @@ func readFile(scan *bufio.Scanner) []string {
 	return s
 }
 
-func After(after int, lines []string, i int) string {
-	s := fmt.Sprintf("%s\n", lines[i])
-	var j = 1
-	for after > 0 {
-		if i+j < len(lines) {
-			s += fmt.Sprintf("%s\n", lines[i+j])
-		}
-
-		after--
-		j++
-	}
-
-	return s
-}
-
-func Before(before int, lines []string, i int) string {
-	var s string
-	var k = 1
-	for before > 0 {
-		if i-before > -1 {
-			s += fmt.Sprintf("%s\n", lines[i-before])
-		}
-		before--
-		k++
-	}
-	s += fmt.Sprintf("%s\n", lines[i])
-
-	return s
-}
-
-func Grep(lines []string, sub string, ic bool) string {
-	var search string
-	var i int
-	if ic {
-		sub = strings.ToLower(sub)
-	}
-	for _, l := range lines {
-		if i = strings.Index(l, sub); i > -1 {
-			i -= 1
-			if i < 0 {
-				i = 0
-			}
-			break
-		}
-	}
-
-	if *after > 0 {
-		search = fmt.Sprintf("%s\n", lines[i])
-		search += After(*after, lines, i)
-	}
-
-	if *before > 0 {
-		search = Before(*before, lines, i)
-		search += fmt.Sprintf("%s\n", lines[i])
-	}
-
-	if *context > 0 {
-		search = Before(*context, lines, i)
-		search += fmt.Sprintf("%s\n", lines[i])
-		search += After(*context, lines, i)
-	}
-
-	search = strings.Trim(search, "\n")
-	if *count {
-		c := len(strings.Split(search, "\n"))
-		fmt.Println(c)
-	}
-
-	if *line {
-		search = fmt.Sprintf("%d: %s", i, lines[i])
-	}
-
-	if *fixed {
-		l := Fixed(lines, sub)
-		return lines[l]
-	}
-	
-	if *invert {
-		Invert(lines, i)
-	}
-	fmt.Println(search)
-	return fmt.Sprintf("%s", lines[i-1])
-}
-
-func Invert(lines []string, i int) string {
-	s := make([]string, 0)
-
-	s = append(s, lines[:i]...)
-	if i+1 < len(lines) {
-		s = append(s, lines[i+1:]...)
-	}
-
-	return strings.Join(s, "\n")
-}
-
-func Fixed(lines []string, sub string) int {
-	for i, l := range lines {
-		if l == sub {
-			i -= 1
-			if i < 0 {
-				i = 0
-			}
-			return i
-		}
-	}
-	return len(lines)
-}
-
-var after = flag.Int("A", 0, "печатать +N строк после совпадения")
-var before = flag.Int("B", 0, "печатать +N строк до совпадения")
-var context = flag.Int("C", 0, "(A+B) печатать ±N строк вокруг совпадения")
-var count = flag.Bool("c", false, "количество строк")
-var ignoreCase = flag.Bool("i", false, "игнорировать регистр")
-var invert = flag.Bool("v", false, "вместо совпадения, исключать")
-var fixed = flag.Bool("F", false, "точное совпадение со строкой, не паттерн")
-var line = flag.Bool("n", false, "напечатать номер строки")
+var afterF = flag.Int("A", 0, "печатать +N строк после совпадения")
+var beforeF = flag.Int("B", 0, "печатать +N строк до совпадения")
+var contextF = flag.Int("C", 0, "(A+B) печатать ±N строк вокруг совпадения")
+var countF = flag.Bool("c", false, "количество строк")
+var ignoreCaseF = flag.Bool("i", false, "игнорировать регистр")
+var invertF = flag.Bool("v", false, "вместо совпадения, исключать")
+var fixedF = flag.Bool("F", false, "точное совпадение со строкой, не паттерн")
+var lineF = flag.Bool("n", false, "напечатать номер строки")
 
 var fileName string
 var sl []string
-
+var q string
 func main() {
 	flag.Parse()
 	fileName = flag.Arg(0)
-	fmt.Println(flag.Args())
+	q = flag.Arg(1)
+	fmt.Println(flag.Args(), flag.Arg(0), flag.Arg(1))
+
+	// Открываем файл
 	r, err := os.Open(fileName)
 	defer r.Close()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[err] %s", err.Error())
+		fmt.Fprintf(os.Stderr, "[err] %s\n", err.Error())
 		return
 	}
+
+	// Создаем сканера, который считает данные по строчно и добавит их в слайс
 	sc := bufio.NewScanner(r)
 	sl = readFile(sc)
-	Grep(sl, `addEventListener`, *ignoreCase)
+	g := Greper{
+		lock: &sync.Mutex{},
+		wg: &sync.WaitGroup{},
+		lines: sl,
+		ignoreCase: *ignoreCaseF,
+		after: *afterF,
+		before: *beforeF,
+		context: *contextF,
+		count: *countF,
+		invert: *invertF,
+		fixed: *fixedF,
+		line: *lineF,
+	}
+
+	g.Grep(q)
+	if g.count {
+		fmt.Fprintf(os.Stdout, "%d", g.Amount())
+	} else {
+		fmt.Fprintf(os.Stdout, "%s", g.Query())
+	}
 }
