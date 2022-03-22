@@ -97,7 +97,6 @@ func (g *Greper) currentQ(index int)  {
 
 // addPreviousQ - добавляет предыдущую строку по N к итоговой строке поиска
 func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int)  {
-	defer wg.Done()
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
@@ -108,7 +107,6 @@ func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int)  {
 
 // addNextQ - добавляет след строку по N к итоговой строке поиска
 func (g *Greper) addNextQ(wg *sync.WaitGroup, index int)  {
-	defer wg.Done()
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
