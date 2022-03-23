@@ -3,39 +3,38 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
 
 type Cuter struct {
-	t  string
 	sl []string
-	f  []string
-	d  string
-	s  bool
-	total string
+	Fields   []string
+	Delim  string
+	Separated  bool
+	Total string
 }
 
-func (c *Cuter) split() []string {
-	return strings.Split(c.t, c.d)
+func (c *Cuter) split(text string) []string {
+	return strings.Split(text, c.Delim)
 }
 
-func (c *Cuter) Cut() string {
-	c.sl = c.split()
+func (c *Cuter) Cut(text string) string {
 
+	c.sl = c.split(text)
 	// Если не нашлись разделители
 	if len(c.sl) <= 1 {
-
 		// Не выводим строки если нет разделителя
-		if c.s {
+		if c.Separated {
 			return ""
 		}
-		c.total = c.sl[0]
-		return c.total
+		c.Total = c.sl[0]
+		return c.Total
 	}
 
-	for _, v := range c.f {
+
+
+	for _, v := range c.Fields {
 		j, err := strconv.Atoi(v)
 		if err != nil {
 			fmt.Println(err.Error())
@@ -47,11 +46,11 @@ func (c *Cuter) Cut() string {
 			if j < 0 {
 				j = 0
 			}
-			c.total += c.sl[j] + " "
+			c.Total += c.sl[j] + " "
 		}
 	}
 
-	return c.total
+	return c.Total
 }
 
 var fields = flag.String("f", "", "выбрать поля (колонки)")
@@ -61,7 +60,13 @@ var separated = flag.Bool("s", false, "только строки с раздел
 func main() {
 	flag.Parse()
 	text := flag.Arg(0)
-	fmt.Println("flag: ", text)
-	c := Cuter{t: text, f: strings.Split(*fields, ","), d: *delimiter, s: *separated}
-	fmt.Fprintf(os.Stdout, "%s", c.Cut())
+
+	c := Cuter{
+		Fields: strings.Split(*fields, ","),
+		Delim: *delimiter,
+		Separated: *separated,
+	}
+
+	res := c.Cut(text)
+	fmt.Println(res)
 }
