@@ -49,15 +49,14 @@ func Kill(args... string) ([]byte, error) {
 	return exec.Command("kill", args...).Output()
 }
 
-func ExecuteCommands(commands []string, w io.Writer)  {
-	for _, command := range commands {
-		args := strings.Split(command, " ")
+func ExecuteCommands(cmds []string, w io.Writer)  {
+	for _, cmd := range cmds {
+		args := strings.Split(cmd, " ")
 
 		com := args[0]
 		if len(args) > 1 {
 			args = args[1:]
 		}
-
 		switch com {
 		case CommandEcho:
 			b, err := Echo(args...)
@@ -138,10 +137,11 @@ func main()  {
 
 	for {
 		fmt.Print("command: ")
+
 		if scan.Scan() {
 			line := scan.Text()
-			commands := strings.Split(line, " | ")
-			ExecuteCommands(commands, output)
+			cmds := strings.Split(line, " | ")
+			ExecuteCommands(cmds, output)
 		}
 	}
 }
