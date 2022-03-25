@@ -9,17 +9,17 @@ import (
 	"strings"
 )
 
-const(
+const (
 	CommandEcho = "echo"
-	CommandCd = "cd"
+	CommandCd   = "cd"
 	CommandKill = "kill"
-	CommandPwd = "pwd"
+	CommandPwd  = "pwd"
 	CommandExit = "quit"
-	CommandPs = "ps"
-	ExitText = "Exit"
+	CommandPs   = "ps"
+	ExitText    = "Exit"
 )
 
-func Echo(args... string) ([]byte, error) {
+func Echo(args ...string) ([]byte, error) {
 	return exec.Command("echo", args...).Output()
 }
 
@@ -45,11 +45,11 @@ func Ps() ([]byte, error) {
 	return exec.Command("ps").Output()
 }
 
-func Kill(args... string) ([]byte, error) {
+func Kill(args ...string) ([]byte, error) {
 	return exec.Command("kill", args...).Output()
 }
 
-func ExecuteCommands(cmds []string, w io.Writer)  {
+func ExecuteCommands(cmds []string, w io.Writer) {
 	for _, cmd := range cmds {
 		args := strings.Split(cmd, " ")
 
@@ -129,9 +129,7 @@ func ExecuteCommands(cmds []string, w io.Writer)  {
 	}
 }
 
-
-
-func main()  {
+func main() {
 	scan := bufio.NewScanner(os.Stdin)
 	var output = os.Stdout
 
