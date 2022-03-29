@@ -17,6 +17,10 @@ const (
 	KB = 1 << (10 * 1) // size read buffer
 )
 
+/**
+10. Реализовать простейший telnet-клиент.
+*/
+
 func main() {
 	// init config
 	cfg := config.Get()
@@ -32,7 +36,7 @@ func main() {
 	defer conn.Close()
 
 	// init signals ctl+D, ctl+C
-	gFulShotDown := make(chan os.Signal)
+	gFulShotDown := make(chan os.Signal, 1)
 	signal.Notify(gFulShotDown, syscall.SIGQUIT, syscall.SIGINT)
 
 	// connections server

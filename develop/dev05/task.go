@@ -14,25 +14,25 @@ import (
 )
 
 /**
-Реализовать утилиту фильтрации по аналогии с консольной утилитой (man grep — смотрим описание и основные параметры).
+5. Реализовать утилиту фильтрации по аналогии с консольной утилитой (man grep — смотрим описание и основные параметры).
 */
 
 type Greper struct {
-	wg *sync.WaitGroup
-	lock *sync.Mutex
-	c chan int
-	lines []string
-	q string
-	after int
-	before int
-	context int
-	count bool
+	wg         *sync.WaitGroup
+	lock       *sync.Mutex
+	c          chan int
+	lines      []string
+	q          string
+	after      int
+	before     int
+	context    int
+	count      bool
 	ignoreCase bool
-	invert bool
-	fixed bool
-	line bool
-	i int
-	amount int
+	invert     bool
+	fixed      bool
+	line       bool
+	i          int
+	amount     int
 }
 
 // contextN - высчитывает индексы для строк ДО и ПОСЛЕ найденной строки
@@ -79,16 +79,16 @@ func (g *Greper) beforeN(i int) string {
 }
 
 // add - Добавляет строку к итоговой строке поиска
-func(g *Greper) add(index int) {
+func (g *Greper) add(index int) {
 	if g.line {
-		g.q += fmt.Sprintf("%d %s\n", index + 1, g.lines[index])
+		g.q += fmt.Sprintf("%d %s\n", index+1, g.lines[index])
 	} else {
 		g.q += fmt.Sprintf("%s\n", g.lines[index])
 	}
 }
 
 // currentQ - Добавляет текущую строку
-func (g *Greper) currentQ(index int)  {
+func (g *Greper) addCurrentQ(index int) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
@@ -96,30 +96,30 @@ func (g *Greper) currentQ(index int)  {
 }
 
 // addPreviousQ - добавляет предыдущую строку по N к итоговой строке поиска
-func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int)  {
+func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
-	index = g.i-index
+	index = g.i - index
 	g.add(index)
 
 }
 
 // addNextQ - добавляет след строку по N к итоговой строке поиска
-func (g *Greper) addNextQ(wg *sync.WaitGroup, index int)  {
+func (g *Greper) addNextQ(wg *sync.WaitGroup, index int) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
-	index = g.i+index
+	index = g.i + index
 	g.add(index)
 }
 
-// worker - управляет работой флагами
+// worker - проверяет флаги и передает дальше функциям исполнителям
 func (g *Greper) worker(i int) {
 	g.amount += 1
 	g.i = i // current string
 
-	if g.before + g.after + g.context > 0 {
+	if g.before+g.after+g.context > 0 {
 		if g.after > 0 {
 			g.afterN(i)
 		}
@@ -132,7 +132,7 @@ func (g *Greper) worker(i int) {
 			g.contextN(i)
 		}
 	} else {
-		g.currentQ(i)
+		g.addCurrentQ(i)
 	}
 
 }
@@ -142,7 +142,7 @@ func (g *Greper) Grep(sub string) {
 	var reg *regexp.Regexp
 	var err error
 	if g.ignoreCase {
-		reg, err = regexp.Compile("(?i)"+sub)
+		reg, err = regexp.Compile("(?i)" + sub)
 		sub = strings.ToLower(sub)
 	} else {
 		reg, err = regexp.Compile(sub)
@@ -158,10 +158,12 @@ func (g *Greper) Grep(sub string) {
 			l = strings.ToLower(l)
 		}
 		if g.fixed {
+			// Если g.invert = true, попадаем во второй if
 			if l == sub && !g.invert {
 				g.worker(i)
 			}
 
+			// противоположна пред-му if
 			if l != sub && g.invert {
 				g.worker(i)
 			}
@@ -221,11 +223,11 @@ var lineF = flag.Bool("n", false, "напечатать номер строки"
 var fileName string
 var sl []string
 var q string
+
 func main() {
 	flag.Parse()
 	fileName = flag.Arg(0)
 	q = flag.Arg(1)
-	fmt.Println(flag.Args(), flag.Arg(0), flag.Arg(1))
 
 	// Открываем файл
 	r, err := os.Open(fileName)
@@ -238,18 +240,20 @@ func main() {
 	// Создаем сканера, который считает данные по строчно и добавит их в слайс
 	sc := bufio.NewScanner(r)
 	sl = readFile(sc)
+
+	// создаем структуру из переданных параметров и флагов пользователя
 	g := Greper{
-		lock: &sync.Mutex{},
-		wg: &sync.WaitGroup{},
-		lines: sl,
+		lock:       &sync.Mutex{},
+		wg:         &sync.WaitGroup{},
+		lines:      sl,
 		ignoreCase: *ignoreCaseF,
-		after: *afterF,
-		before: *beforeF,
-		context: *contextF,
-		count: *countF,
-		invert: *invertF,
-		fixed: *fixedF,
-		line: *lineF,
+		after:      *afterF,
+		before:     *beforeF,
+		context:    *contextF,
+		count:      *countF,
+		invert:     *invertF,
+		fixed:      *fixedF,
+		line:       *lineF,
 	}
 
 	g.Grep(q)

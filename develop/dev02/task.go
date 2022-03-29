@@ -5,6 +5,9 @@ import (
 	"strconv"
 )
 
+/**
+2. Создать Go-функцию, осуществляющую примитивную распаковку строки, содержащую повторяющиеся символы/руны, например
+*/
 
 func RepeatS(s string) string {
 	if len(s) == 0 {
@@ -34,7 +37,7 @@ func RepeatS(s string) string {
 			for _, v2 := range s[i:] {
 				if beyond(v2) {
 					// создаем будущее число из строки
-					n+=string(v2)
+					n += string(v2)
 				} else {
 					// Если это буква тогда закрываем цикл
 					break
@@ -59,7 +62,7 @@ func RepeatS(s string) string {
 	return repeatCh
 }
 
-func main()  {
+func main() {
 	s := `2a4bc2d5e`
 	fmt.Println(RepeatS(s))
 

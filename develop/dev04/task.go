@@ -8,14 +8,14 @@ import (
 )
 
 /**
-Написать функцию поиска всех множеств анаграмм по словарю.
+4. Написать функцию поиска всех множеств анаграмм по словарю.
 
 Например:
 'пятак', 'пятка' и 'тяпка' - принадлежат одному множеству,
 'листок', 'слиток' и 'столик' - другому
- */
+*/
 
-func Set(sl []string) []string  {
+func Set(sl []string) []string {
 	m := make(map[string]int)
 	set := make([]string, 0)
 	for _, v := range sl {
@@ -30,7 +30,6 @@ func Set(sl []string) []string  {
 
 	return set
 }
-
 func IsAnagram(self, other string) bool {
 	if utf8.RuneCountInString(self) != utf8.RuneCountInString(other) {
 		return false
@@ -41,7 +40,7 @@ func IsAnagram(self, other string) bool {
 		m[string(v)]++
 	}
 
-	for _, v := range strings.Trim(strings.ToLower(other), " ")  {
+	for _, v := range strings.Trim(strings.ToLower(other), " ") {
 		m[string(v)] = m[string(v)] - 1
 		if m[string(v)] < 0 {
 			return false
@@ -53,8 +52,11 @@ func IsAnagram(self, other string) bool {
 
 func SetAnagram(anagrams []string) map[string][]string {
 	m := make(map[string][]string)
+
+	// Проверяем каждую строку с другими строками, является ли она анаграммой если да, она сохраняться в мапе
 	for _, anagram := range anagrams {
 		s := make([]string, 0)
+
 		for _, word := range anagrams {
 			if IsAnagram(anagram, word) {
 				s = append(s, strings.ToLower(word))

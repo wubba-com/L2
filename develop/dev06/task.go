@@ -7,12 +7,17 @@ import (
 	"strings"
 )
 
+/**
+6.  Реализовать утилиту аналог консольной команды cut (man cut). Утилита должна принимать строки через STDIN,
+разбивать по разделителю (TAB) на колонки и выводить запрошенные
+*/
+
 type Cuter struct {
-	sl []string
-	Fields   []string
-	Delim  string
-	Separated  bool
-	Total string
+	sl        []string
+	Fields    []string
+	Delim     string
+	Separated bool
+	Total     string
 }
 
 func (c *Cuter) split(text string) []string {
@@ -31,8 +36,6 @@ func (c *Cuter) Cut(text string) string {
 		c.Total = c.sl[0]
 		return c.Total
 	}
-
-
 
 	for _, v := range c.Fields {
 		j, err := strconv.Atoi(v)
@@ -62,8 +65,8 @@ func main() {
 	text := flag.Arg(0)
 
 	c := Cuter{
-		Fields: strings.Split(*fields, ","),
-		Delim: *delimiter,
+		Fields:    strings.Split(*fields, ","),
+		Delim:     *delimiter,
 		Separated: *separated,
 	}
 

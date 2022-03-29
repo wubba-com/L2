@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+/**
+8. Необходимо реализовать свой собственный UNIX-шелл-утилиту с поддержкой ряда простейших команд:
+*/
+
 const (
 	CommandEcho = "echo"
 	CommandCd   = "cd"
@@ -19,15 +23,24 @@ const (
 	ExitText    = "Exit"
 )
 
+/**
+Пакет exec запускает внешние команды. Он обертывает os.StartProcess,
+чтобы сделать его проще переназначить stdin и stdout,
+соединить ввод /вывод с помощью каналов и сделать другие корректировки.
+*/
+
+// Echo выполняет unix-команду echo и возвращает результат в байтах
 func Echo(args ...string) ([]byte, error) {
 	return exec.Command("echo", args...).Output()
 }
 
+// Pwd - выводит путь директории в которой находится терминал
 func Pwd() ([]byte, error) {
 	dir, err := os.Getwd()
 	return []byte(dir), err
 }
 
+// Cd - изменяет директорию
 func Cd(dir string) ([]byte, error) {
 	err := os.Chdir(dir)
 	if err != nil {
@@ -41,14 +54,17 @@ func Cd(dir string) ([]byte, error) {
 	return []byte(dir), nil
 }
 
+// Ps - Выводит работающие процессы
 func Ps() ([]byte, error) {
 	return exec.Command("ps").Output()
 }
 
+// Kill - убивает запущенный процесс
 func Kill(args ...string) ([]byte, error) {
 	return exec.Command("kill", args...).Output()
 }
 
+// ExecuteCommands Исполняет команды, которые ввел пользователь
 func ExecuteCommands(cmds []string, w io.Writer) {
 	for _, cmd := range cmds {
 		args := strings.Split(cmd, " ")
@@ -118,7 +134,7 @@ func ExecuteCommands(cmds []string, w io.Writer) {
 				fmt.Println("[err]", err.Error())
 				return
 			}
-		case CommandExit:
+		case CommandExit: // завершение программы
 			_, err := fmt.Fprintln(w, ExitText)
 			if err != nil {
 				fmt.Println("[err]", err.Error())
@@ -130,7 +146,10 @@ func ExecuteCommands(cmds []string, w io.Writer) {
 }
 
 func main() {
+	// Читает из стандартного ввода
 	scan := bufio.NewScanner(os.Stdin)
+
+	// устанавливается общий вывод результата команд
 	var output = os.Stdout
 
 	for {
