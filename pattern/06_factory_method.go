@@ -1,12 +1,12 @@
 package main
 
-const(
+const (
 	postgresDB = "postgres"
-	mysqlDB = "mysql"
-	mongoDB = "mongo"
+	mysqlDB    = "mysql"
+	mongoDB    = "mongo"
 )
 
-// FactoryClient Фабрика создающая клиент к бд (продукт) в зависимости от переданного параметра из конфига или cli
+// FactoryClient Фабрика создающая клиент к бд в зависимости от переданного параметра из конфига или cli
 func FactoryClient(client string) Client {
 	switch client {
 	case postgresDB:
@@ -30,10 +30,11 @@ type Client interface {
 func NewPostgres() Client {
 	return &PostgresClient{}
 }
-type PostgresClient struct {
 
+type PostgresClient struct {
 }
-func (p *PostgresClient) Accept() error  {
+
+func (p *PostgresClient) Accept() error {
 	return nil
 }
 
@@ -43,10 +44,11 @@ func (p *PostgresClient) Accept() error  {
 func NewMysql() Client {
 	return &MysqlClient{}
 }
-type MysqlClient struct {
 
+type MysqlClient struct {
 }
-func (p *MysqlClient) Accept() error  {
+
+func (p *MysqlClient) Accept() error {
 	return nil
 }
 
@@ -55,10 +57,11 @@ func (p *MysqlClient) Accept() error  {
 func NewMongo() Client {
 	return &MongoClient{}
 }
-type MongoClient struct {
 
+type MongoClient struct {
 }
-func (p *MongoClient) Accept() error  {
+
+func (p *MongoClient) Accept() error {
 	return nil
 }
 
@@ -73,8 +76,8 @@ func (p *MongoClient) Accept() error  {
 2.  Выделяет код производства продуктов в одно место, упрощая поддержку кода
 3. Упрощает добавление новых структур в программу
 4. Реализует принцип открытости/закрытости
- */
-func main()  {
+*/
+func main() {
 	// параметр из конфига
 	var dbConfig = "postgres"
 

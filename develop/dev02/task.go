@@ -15,34 +15,39 @@ func RepeatS(s string) string {
 	}
 
 	var repeatCh string
-	beyond := func(c rune) bool {
+	isDigit := func(c rune) bool {
 		return c >= 48 && c <= 57
 	}
 
 	for i, v := range s {
 		// Если строка является численной строкой
-		if beyond(v) {
+		if isDigit(v) {
 			// И берем предыдущий элемент который вскоре будем умножать
 			if i == 0 {
 				continue
 			}
+
 			c := s[i-1]
+
 			// проверяем, что он не является численной строкой
-			if beyond(rune(c)) {
+			if isDigit(rune(c)) {
 				continue
+			}
+
+			if string(c) == "\\" { // \
+				c = s[i]
 			}
 
 			var n string
 			// В цикле начинаем проверять является ли следующий символ числовой строки, да бы проверить ее в разряде десятков, тысяч итд.
 			for _, v2 := range s[i:] {
-				if beyond(v2) {
+				if isDigit(v2) {
 					// создаем будущее число из строки
 					n += string(v2)
-				} else {
-					// Если это буква тогда закрываем цикл
-					break
+					continue
 				}
 
+				break
 			}
 			// переводим строку в число
 			x, err := strconv.Atoi(n)
@@ -63,7 +68,6 @@ func RepeatS(s string) string {
 }
 
 func main() {
-	s := `2a4bc2d5e`
+	s := `a4bc2d5e`
 	fmt.Println(RepeatS(s))
-
 }

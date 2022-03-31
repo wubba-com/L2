@@ -6,11 +6,18 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
 /**
-8. Необходимо реализовать свой собственный UNIX-шелл-утилиту с поддержкой ряда простейших команд:
+8. Необходимо реализовать свой собственный UNIX-шелл-утилиту с поддержкой ряда простейших команд
+*/
+
+/**
+Пакет exec запускает внешние команды. Он обертывает os.StartProcess,
+чтобы сделать его проще переназначить stdin и stdout,
+соединить ввод /вывод с помощью каналов и сделать другие корректировки.
 */
 
 const (
@@ -23,25 +30,24 @@ const (
 	ExitText    = "Exit"
 )
 
-/**
-Пакет exec запускает внешние команды. Он обертывает os.StartProcess,
-чтобы сделать его проще переназначить stdin и stdout,
-соединить ввод /вывод с помощью каналов и сделать другие корректировки.
-*/
+type Command interface {
+	Exec(args ...string) ([]byte, error)
+}
 
-// Echo выполняет unix-команду echo и возвращает результат в байтах
-func Echo(args ...string) ([]byte, error) {
+// echoCmd выполняет unix-команду echo и возвращает результат в байтах
+type echoCmd struct {
+}
+
+func (e *echoCmd) Exec(args ...string) ([]byte, error) {
 	return exec.Command("echo", args...).Output()
 }
 
-// Pwd - выводит путь директории в которой находится терминал
-func Pwd() ([]byte, error) {
-	dir, err := os.Getwd()
-	return []byte(dir), err
+// cdCmd - изменяет директорию
+type cdCmd struct {
 }
 
-// Cd - изменяет директорию
-func Cd(dir string) ([]byte, error) {
+func (c *cdCmd) Exec(args ...string) ([]byte, error) {
+	dir := args[0]
 	err := os.Chdir(dir)
 	if err != nil {
 		return nil, err
@@ -54,94 +60,110 @@ func Cd(dir string) ([]byte, error) {
 	return []byte(dir), nil
 }
 
-// Ps - Выводит работающие процессы
-func Ps() ([]byte, error) {
+// pwdCmd - выводит путь директории в которой находится терминал
+type pwdCmd struct {
+}
+
+func (p *pwdCmd) Exec(args ...string) ([]byte, error) {
+	dir, err := os.Getwd()
+	return []byte(dir), err
+}
+
+// killCmd - убивает запущенный процесс
+type killCmd struct {
+}
+
+func (k *killCmd) Exec(args ...string) ([]byte, error) {
+	pid, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+
+	err = process.Kill()
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	return []byte("killed"), nil
+}
+
+// psCmd - Выводит работающие процессы
+type psCmd struct {
+}
+
+func (p *psCmd) Exec(args ...string) ([]byte, error) {
 	return exec.Command("ps").Output()
 }
 
-// Kill - убивает запущенный процесс
-func Kill(args ...string) ([]byte, error) {
-	return exec.Command("kill", args...).Output()
+// Shell - UNIX-шелл-утилита с поддержкой ряда простейших команд
+type Shell struct {
+	command Command
+	output  io.Writer
+}
+
+func (s *Shell) SetCommand(cmd Command) {
+	s.command = cmd
+}
+
+// Run - выполнение конкретной команды
+func (s *Shell) run(args ...string) {
+	b, err := s.command.Exec(args...)
+	_, err = fmt.Fprintln(s.output, string(b))
+	if err != nil {
+		fmt.Println("[err]", err.Error())
+		return
+	}
 }
 
 // ExecuteCommands Исполняет команды, которые ввел пользователь
-func ExecuteCommands(cmds []string, w io.Writer) {
-	for _, cmd := range cmds {
-		args := strings.Split(cmd, " ")
+func (s *Shell) ExecuteCommands(cmds []string) {
+	for _, command := range cmds {
+		args := strings.Split(command, " ")
 
 		com := args[0]
 		if len(args) > 1 {
 			args = args[1:]
 		}
+
 		switch com {
 		case CommandEcho:
-			b, err := Echo(args...)
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
+			cmd := &echoCmd{}
+			s.SetCommand(cmd)
 
-			_, err = fmt.Fprintln(w, string(b))
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
 		case CommandCd:
-			b, err := Cd(args[0])
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
+			cmd := &cdCmd{}
+			s.SetCommand(cmd)
 
-			_, err = fmt.Fprintln(w, string(b))
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
 		case CommandKill:
-			b, err := Kill(args...)
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
+			cmd := &killCmd{}
+			s.SetCommand(cmd)
 
-			_, err = fmt.Fprintln(w, string(b))
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
 		case CommandPwd:
-			b, err := Pwd()
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
+			cmd := &pwdCmd{}
+			s.SetCommand(cmd)
 
-			_, err = fmt.Fprintln(w, string(b))
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
 		case CommandPs:
-			b, err := Ps()
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
+			cmd := &psCmd{}
+			s.SetCommand(cmd)
 
-			_, err = fmt.Fprintln(w, string(b))
-			if err != nil {
-				fmt.Println("[err]", err.Error())
-				return
-			}
 		case CommandExit: // завершение программы
-			_, err := fmt.Fprintln(w, ExitText)
+			_, err := fmt.Fprintln(s.output, ExitText)
 			if err != nil {
 				fmt.Println("[err]", err.Error())
 				return
 			}
 			os.Exit(1)
+		default:
+			fmt.Println("Такой команды не будет")
+			continue
 		}
+		s.run(args...)
 	}
 }
 
@@ -152,13 +174,15 @@ func main() {
 	// устанавливается общий вывод результата команд
 	var output = os.Stdout
 
+	shell := &Shell{output: output}
 	for {
 		fmt.Print("command: ")
 
 		if scan.Scan() {
 			line := scan.Text()
 			cmds := strings.Split(line, " | ")
-			ExecuteCommands(cmds, output)
+
+			shell.ExecuteCommands(cmds)
 		}
 	}
 }

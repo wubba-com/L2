@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 /**
@@ -20,25 +20,8 @@ const (
 	Dir = "pages"
 )
 
-// Уберет дубликаты из будущего названия пути файла
-func setUrl(sl []string) []string {
-	m := make(map[string]int)
-	set := make([]string, 0)
-	for _, v := range sl {
-		m[v] += 1
-	}
-
-	for k := range m {
-		if m[k] < 2 {
-			set = append(set, k)
-		}
-	}
-
-	return set
-}
-
 // GetWithClient - функция-замыкание которая замыкает в себе http.Client
-func GetWithClient(client *http.Client) func(string) error {
+func GetWithClient(client *http.Client, fileName string) func(string) error {
 	return func(url string) error {
 		// создаем объект запроса
 		r, err := http.NewRequest(http.MethodGet, url, nil)
@@ -49,7 +32,6 @@ func GetWithClient(client *http.Client) func(string) error {
 
 		// Отправляем запрос
 		w, err := client.Do(r)
-
 		defer func(Body io.ReadCloser) {
 			err = Body.Close()
 			if err != nil {
@@ -62,14 +44,13 @@ func GetWithClient(client *http.Client) func(string) error {
 			return err
 		}
 
+		fmt.Printf("status: %d", w.StatusCode)
 		p, err := ioutil.ReadAll(w.Body)
 		if err != nil {
 			return err
 		}
 
 		// создаем имя файла из полного пути url
-		paths := strings.Split(strings.Trim(url, " "), "/")
-		fileName := strings.Join(setUrl(paths[1:]), "_")
 
 		err = write(fileName, p)
 		if err != nil {
@@ -89,7 +70,7 @@ func write(fileName string, p []byte) error {
 	}
 	// os.OpenFile с os.O_CREATE|os.O_WRONLY - откроет файл и запишет в него если такой имеется
 	//или создаст новый файл. fs.ModePerm - задает права для файла
-	f, err := os.OpenFile(filepath.Join(dir, Dir, fileName+".html"), os.O_CREATE|os.O_WRONLY, fs.ModePerm)
+	f, err := os.OpenFile(filepath.Join(dir, Dir, fileName), os.O_CREATE|os.O_WRONLY, fs.ModePerm)
 	defer f.Close()
 	if err != nil {
 		return err
@@ -98,12 +79,18 @@ func write(fileName string, p []byte) error {
 	return ioutil.WriteFile(f.Name(), p, fs.ModePerm)
 }
 
+var fileName = flag.String("O", "index.html", "файл в который будут сохранены полученные данные")
+
+// https://seasonkrasoty.ru/product/legkiy_omolazhivayushchiy_krem/
 func main() {
+
+	flag.Parse()
+	path := flag.Arg(0)
 	tr := &http.Transport{}
 	client := &http.Client{Transport: tr}
 
-	DownPage := GetWithClient(client)
-	err := DownPage("https://seasonkrasoty.ru/product/legkiy_omolazhivayushchiy_krem/")
+	DownPage := GetWithClient(client, *fileName)
+	err := DownPage(path)
 	if err != nil {
 		fmt.Println(err.Error())
 	}

@@ -41,8 +41,9 @@ func readScan(scan *bufio.Scanner) []string {
 	return s
 }
 
-// SortUnique - сортирует и удаляет дубли
-func SortUnique(sl []string) []string {
+// sortUnique - сортирует и удаляет дубли
+func sortUnique(sl []string) []string {
+
 	set := make([]string, 0)
 
 	for _, v := range sl {
@@ -55,8 +56,8 @@ func SortUnique(sl []string) []string {
 	return sortWithRegister(set)
 }
 
-// SortReverse - сортирует в обратном порядке
-func SortReverse(sl []string) []string {
+// sortReverse - сортирует в обратном порядке
+func sortReverse(sl []string) []string {
 
 	for i, j := 0, len(sl)-1; i < j; i, j = i+1, j-1 {
 		sl[i], sl[j] = sl[j], sl[i]
@@ -66,8 +67,9 @@ func SortReverse(sl []string) []string {
 	return sl
 }
 
-// SortColumn - сортирует по выбранной колонке и по числовому значению
-func SortColumn(lines []string, k int, n bool) []string {
+// sortColumn - сортирует по выбранной колонке и по числовому значению
+func sortColumn(lines []string, k int, n bool) []string {
+
 	s := make([][]string, 0)
 
 	k = k - 1
@@ -81,19 +83,22 @@ func SortColumn(lines []string, k int, n bool) []string {
 
 	if n {
 		sort.SliceStable(s, func(i, j int) bool {
-			if len(s[i]) >= k && len(s[j]) >= k {
+			if len(s[i]) > k && len(s[j]) > k {
 				x, err := strconv.Atoi(s[i][k])
 				y, err := strconv.Atoi(s[j][k])
 				if err != nil {
+					fmt.Println(err)
 					return false
 				}
+
 				return x < y
 			}
+
 			return false
 		})
 	} else {
 		sort.SliceStable(s, func(i, j int) bool {
-			if len(s[i]) >= k && len(s[j]) >= k {
+			if len(s[i]) > k && len(s[j]) > k {
 				return strings.ToLower(s[i][k]) < strings.ToLower(s[j][k])
 			}
 			return false
@@ -112,8 +117,29 @@ func SortColumn(lines []string, k int, n bool) []string {
 	return sl
 }
 
+func unixSort(sl []string, flags *FlagsSort) []byte {
+	sl = sortWithRegister(sl)
+
+	// сортировка с удалением дублей
+	if flags.unique {
+		sl = sortUnique(sl)
+	}
+
+	// сортировка по колонке
+	if flags.column > -1 {
+		sl = sortColumn(sl, flags.column, flags.byName)
+	}
+
+	// сортировка в обратном порядке
+	if flags.reverse {
+		sl = sortReverse(sl)
+	}
+
+	return []byte(strings.Join(sl, "\n"))
+}
+
 const (
-	columnVal = -1
+	DefaultColumnVal = -1
 )
 
 var fscan *bufio.Scanner
@@ -124,8 +150,15 @@ var unique bool
 var reverse bool
 var sl []string
 
+type FlagsSort struct {
+	column  int
+	reverse bool
+	unique  bool
+	byName  bool
+}
+
 func main() {
-	flag.IntVar(&column, "k", columnVal, "указание колонки для сортировки")
+	flag.IntVar(&column, "k", -1, "указание колонки для сортировки")
 	flag.BoolVar(&reverse, "r", false, "сортировать в обратном порядке")
 	flag.BoolVar(&unique, "u", false, "не выводить повторяющиеся строки")
 	flag.BoolVar(&byNum, "n", false, "сортировать по числовому значению")
@@ -135,33 +168,15 @@ func main() {
 	f, err := os.Open(fileName)
 	defer f.Close()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 		return
 	}
-
+	fl := &FlagsSort{unique: unique, column: column, reverse: reverse, byName: byNum}
 	fscan = bufio.NewScanner(f)
 	sl = readScan(fscan)
-	sl = sortWithRegister(sl)
 
-	// сортировка с удалением дублей
-	if unique {
-		sl = SortUnique(sl)
-	}
-
-	// сортировка по колонке
-	if column > columnVal {
-		sl = SortColumn(sl, column, byNum)
-	}
-
-	// сортировка в обратном порядке
-	if reverse {
-		sl = SortReverse(sl)
-	}
-
-	b := []byte(strings.Join(sl, "\n"))
-
-	err = ioutil.WriteFile(f.Name(), b, fs.ModePerm)
+	err = ioutil.WriteFile(f.Name(), unixSort(sl, fl), fs.ModePerm)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 }

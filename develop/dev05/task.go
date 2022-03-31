@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,7 @@ import (
 */
 
 type Greper struct {
+	output     io.Writer
 	wg         *sync.WaitGroup
 	lock       *sync.Mutex
 	c          chan int
@@ -53,14 +55,13 @@ func (g *Greper) afterN(i int) string {
 	var j = 0
 	counter := g.after
 	for counter >= 0 {
-		g.wg.Add(1)
 		if i+j < len(g.lines) {
 			g.addNextQ(g.wg, j)
 		}
 		counter--
 		j++
 	}
-	g.wg.Wait()
+
 	return g.q
 }
 
@@ -68,13 +69,12 @@ func (g *Greper) afterN(i int) string {
 func (g *Greper) beforeN(i int) string {
 	counter := g.before
 	for counter >= 0 {
-		g.wg.Add(1)
 		if i-counter > -1 {
 			g.addPreviousQ(g.wg, counter)
 		}
 		counter--
 	}
-	g.wg.Wait()
+
 	return g.q
 }
 
@@ -87,11 +87,8 @@ func (g *Greper) add(index int) {
 	}
 }
 
-// currentQ - Добавляет текущую строку
+// addCurrentQ - Добавляет текущую строку
 func (g *Greper) addCurrentQ(index int) {
-	g.lock.Lock()
-	defer g.lock.Unlock()
-
 	g.add(index)
 }
 
@@ -99,7 +96,6 @@ func (g *Greper) addCurrentQ(index int) {
 func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
-
 	index = g.i - index
 	g.add(index)
 
@@ -109,7 +105,6 @@ func (g *Greper) addPreviousQ(wg *sync.WaitGroup, index int) {
 func (g *Greper) addNextQ(wg *sync.WaitGroup, index int) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
-
 	index = g.i + index
 	g.add(index)
 }
@@ -139,6 +134,7 @@ func (g *Greper) worker(i int) {
 
 // Grep - запускает алгоритм поиска
 func (g *Greper) Grep(sub string) {
+	fmt.Println(g.after, g.before, g.context)
 	var reg *regexp.Regexp
 	var err error
 	if g.ignoreCase {
@@ -181,15 +177,21 @@ func (g *Greper) Grep(sub string) {
 	}
 
 	g.q = strings.Trim(g.q, "\n")
+
+	if g.count {
+		fmt.Fprintf(g.output, "%d", g.amountQ())
+	} else {
+		fmt.Fprintf(g.output, "%s", g.query())
+	}
 }
 
 // Amount - Получаем сколько строк найдено
-func (g *Greper) Amount() int {
+func (g *Greper) amountQ() int {
 	return g.amount
 }
 
 // Query - Получаем итоговую строку поиска
-func (g *Greper) Query() string {
+func (g *Greper) query() string {
 	return g.q
 }
 
@@ -243,6 +245,7 @@ func main() {
 
 	// создаем структуру из переданных параметров и флагов пользователя
 	g := Greper{
+		output:     os.Stdout,
 		lock:       &sync.Mutex{},
 		wg:         &sync.WaitGroup{},
 		lines:      sl,
@@ -257,9 +260,4 @@ func main() {
 	}
 
 	g.Grep(q)
-	if g.count {
-		fmt.Fprintf(os.Stdout, "%d", g.Amount())
-	} else {
-		fmt.Fprintf(os.Stdout, "%s", g.Query())
-	}
 }

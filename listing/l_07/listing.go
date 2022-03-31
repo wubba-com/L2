@@ -42,6 +42,22 @@ func merge(a, b <-chan int) <-chan int {
 	return c
 }
 
+func merge2(a, b <-chan int) <-chan int {
+	c := make(chan int)
+	go func() {
+		for v := range a {
+			c <- v
+		}
+
+		for v := range b {
+			c <- v
+		}
+
+		close(c)
+	}()
+	return c
+}
+
 func main() {
 
 	a := asChan(1, 3, 5, 7)
